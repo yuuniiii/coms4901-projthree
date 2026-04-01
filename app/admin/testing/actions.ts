@@ -1,11 +1,16 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { checkAdmin } from "@/lib/admin-check";
 
 export async function generateCaption(imageId: string, flavorSlug: string) {
-  const supabase = await createClient();
-
+  const { user } = await checkAdmin();
+  
   // Get the session to pass the access token if needed by the API
+  // Note: checkAdmin already verified the user exists and is an admin.
+  // We might need to get the session again or just use the user.
+  
+  // Fetching session for the token
+  const { supabase } = await checkAdmin();
   const {
     data: { session },
   } = await supabase.auth.getSession();

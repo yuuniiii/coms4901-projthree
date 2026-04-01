@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function AdminLayout({
   children,
@@ -40,7 +41,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       <nav className="border-b dark:border-gray-800 p-4 sticky top-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm z-10">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex gap-6">
+          <div className="flex gap-6 items-center">
             <Link href="/admin/flavors" className="font-semibold hover:text-blue-600">
               Humor Flavors
             </Link>
@@ -52,7 +53,8 @@ export default async function AdminLayout({
             </Link>
           </div>
           <div className="flex gap-4 items-center">
-            <span className="text-sm text-gray-500">{user.email}</span>
+            <ThemeToggle />
+            <span className="text-sm text-gray-500 hidden md:inline">{user.email}</span>
             <form action="/auth/signout" method="post">
               <button className="text-sm hover:underline">Sign Out</button>
             </form>
