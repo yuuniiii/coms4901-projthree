@@ -90,12 +90,12 @@ export default async function ResultsPage({
               <tr key={caption.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="w-16 h-16 rounded overflow-hidden">
-                    <img src={caption.images?.url || ""} alt="Caption image" className="object-cover w-full h-full" />
+                    <img src={caption.images?.[0]?.url || ""} alt="Caption image" className="object-cover w-full h-full" />
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded text-sm font-mono">
-                    {caption.humor_flavors?.slug || "N/A"}
+                    {caption.humor_flavors?.[0].slug || "N/A"}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm italic">
