@@ -1,28 +1,24 @@
-import { createClient } from "@/lib/supabase/server";
+import { checkAdmin } from "@/lib/admin-check";
 import { TestingForm } from "./testing-form";
 
 export default async function TestingPage() {
-  const supabase = await createClient();
+  const { supabase } = await checkAdmin();
 
-  // Fetch images from the test set
-  const { data: images } = await supabase
-    .from("images")
-    .select("id, url, additional_context")
-    .limit(20);
-
-  // Fetch available humor flavors
   const { data: flavors } = await supabase
     .from("humor_flavors")
-    .select("id, slug, description");
+    .select("id, slug, description")
+    .order("slug", { ascending: true });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Humor Flavor Testing</h1>
-      <p className="text-gray-600 dark:text-gray-400">
-        Choose an image and a flavor to test the caption generation chain.
-      </p>
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Humor Flavor Testing</h1>
+        <p className="text-muted-foreground">
+          Upload an image and select a humor flavor to test the caption generation pipeline.
+        </p>
+      </div>
 
-      <TestingForm images={images || []} flavors={flavors || []} />
+      <TestingForm flavors={flavors || []} />
     </div>
   );
 }

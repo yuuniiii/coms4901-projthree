@@ -1,13 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { generateCaption } from "./actions";
-
-interface Image {
-  id: string;
-  url: string | null;
-  additional_context: string | null;
-}
+import { useState, useRef, ChangeEvent } from "react";
+import Image from "next/image";
 
 interface Flavor {
   id: number;
@@ -15,22 +9,58 @@ interface Flavor {
   description: string | null;
 }
 
-export function TestingForm({ images, flavors }: { images: Image[]; flavors: Flavor[] }) {
-  const [selectedImage, setSelectedImage] = useState<string>("");
-  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
+export function TestingForm({ flavors }: { flavors: Flavor[] }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFlavorId, setSelectedFlavorId] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+      setResult(null);
+      setError(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!file || !selectedFlavorId) return;
+
     setIsGenerating(true);
     setResult(null);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("humorFlavorId", selectedFlavorId);
 
     try {
-      const output = await generateCaption(selectedImage, selectedFlavor);
-      setResult(output);
-    } catch (error) {
-      setResult("Error generating caption. Please try again.");
+      console.log("Submitting test generation request...");
+      console.log("- File:", file.name, file.type, file.size);
+      console.log("- Flavor ID:", selectedFlavorId);
+
+      const response = await fetch("/api/admin/testing", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate caption");
+      }
+
+      setResult(data.captions);
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setError(err.message || "An unexpected error occurred");
     } finally {
       setIsGenerating(false);
     }
@@ -38,36 +68,68 @@ export function TestingForm({ images, flavors }: { images: Image[]; flavors: Fla
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-lg border dark:border-gray-800 shadow">
-        <div>
-          <label className="block text-sm font-medium mb-2">Select Test Image</label>
-          <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border rounded">
-            {images.map((img) => (
-              <button
-                key={img.id}
-                type="button"
-                onClick={() => setSelectedImage(img.id)}
-                className={`relative aspect-square rounded overflow-hidden border-2 transition-all ${
-                  selectedImage === img.id ? "border-blue-600 ring-2 ring-blue-600" : "border-transparent"
-                }`}
-              >
-                <img src={img.url || ""} alt="Test image" className="object-cover w-full h-full" />
-              </button>
-            ))}
+      <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 rounded-lg border shadow-sm">
+        <div className="space-y-2">
+          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            Upload Image
+          </label>
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-accent transition-colors min-h-[160px] flex flex-col items-center justify-center gap-2"
+          >
+            {previewUrl ? (
+              <div className="relative aspect-video w-full max-h-40">
+                <Image 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  fill 
+                  className="object-contain rounded"
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-8 w-8"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" x2="12" y1="3" y2="15" />
+                </svg>
+                <span>Click or drag to upload image</span>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Select Humor Flavor</label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            Select Humor Flavor
+          </label>
           <select
-            value={selectedFlavor}
-            onChange={(e) => setSelectedFlavor(e.target.value)}
-            className="w-full p-2 border rounded bg-white dark:bg-gray-800"
+            value={selectedFlavorId}
+            onChange={(e) => setSelectedFlavorId(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             required
           >
             <option value="">-- Select a Flavor --</option>
             {flavors.map((f) => (
-              <option key={f.id} value={f.slug}>
+              <option key={f.id} value={f.id}>
                 {f.slug} - {f.description}
               </option>
             ))}
@@ -76,20 +138,33 @@ export function TestingForm({ images, flavors }: { images: Image[]; flavors: Fla
 
         <button
           type="submit"
-          disabled={!selectedImage || !selectedFlavor || isGenerating}
-          className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          disabled={!file || !selectedFlavorId || isGenerating}
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
         >
-          {isGenerating ? "Generating..." : "Generate Caption"}
+          {isGenerating ? "Uploading & Generating..." : "Generate Caption"}
         </button>
+
+        {error && (
+          <div className="p-3 text-sm bg-destructive/10 text-destructive rounded-md border border-destructive/20">
+            {error}
+          </div>
+        )}
       </form>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold">Generated Output</h2>
-        <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg min-h-[200px] border dark:border-gray-700 flex items-center justify-center italic text-center">
-          {result ? (
-            <p className="text-lg whitespace-pre-wrap">{result}</p>
+        <h2 className="text-xl font-bold tracking-tight">Generated Output</h2>
+        <div className="bg-muted p-6 rounded-lg min-h-[240px] border flex flex-col items-center justify-center italic text-center gap-4 relative">
+          {isGenerating ? (
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground animate-pulse">Running pipeline...</p>
+            </div>
+          ) : result ? (
+            <p className="text-lg leading-relaxed whitespace-pre-wrap font-medium">
+              "{result}"
+            </p>
           ) : (
-            <p className="text-gray-500">Output will appear here...</p>
+            <p className="text-muted-foreground">Generated caption will appear here...</p>
           )}
         </div>
       </div>
