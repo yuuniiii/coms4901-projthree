@@ -14,7 +14,7 @@ export function TestingForm({ flavors }: { flavors: Flavor[] }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFlavorId, setSelectedFlavorId] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [results, setResults] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,7 +24,7 @@ export function TestingForm({ flavors }: { flavors: Flavor[] }) {
       setFile(selectedFile);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
-      setResult(null);
+      setResults([]);
       setError(null);
     }
   };
@@ -34,7 +34,7 @@ export function TestingForm({ flavors }: { flavors: Flavor[] }) {
     if (!file || !selectedFlavorId) return;
 
     setIsGenerating(true);
-    setResult(null);
+    setResults([]);
     setError(null);
 
     const formData = new FormData();
@@ -57,7 +57,7 @@ export function TestingForm({ flavors }: { flavors: Flavor[] }) {
         throw new Error(data.error || "Failed to generate caption");
       }
 
-      setResult(data.captions);
+      setResults(Array.isArray(data.captions) ? data.captions : []);
     } catch (err: any) {
       console.error("Submission error:", err);
       setError(err.message || "An unexpected error occurred");
@@ -159,11 +159,23 @@ export function TestingForm({ flavors }: { flavors: Flavor[] }) {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <p className="text-muted-foreground animate-pulse">Running pipeline...</p>
             </div>
-          ) : result ? (
-            <p className="text-lg leading-relaxed whitespace-pre-wrap font-medium">
-              "{result}"
-            </p>
-          ) : (
+          ) : results.length > 0 ? (
+  <div className="w-full space-y-3 not-italic text-left">
+    {results.map((caption, i) => (
+      <div
+        key={i}
+        className="rounded-md border bg-background p-4"
+      >
+        <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+          Caption {i + 1}
+        </p>
+        <p className="text-base leading-relaxed font-medium whitespace-pre-wrap">
+          {caption}
+        </p>
+      </div>
+    ))}
+  </div>
+) : (
             <p className="text-muted-foreground">Generated caption will appear here...</p>
           )}
         </div>
