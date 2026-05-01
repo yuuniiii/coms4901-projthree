@@ -48,9 +48,6 @@ export default async function AdminLayout({
             <Link href="/admin/testing" className="font-semibold hover:text-blue-600">
               Testing Tool
             </Link>
-            <Link href="/admin/results" className="font-semibold hover:text-blue-600">
-              Results
-            </Link>
           </div>
           <div className="flex gap-4 items-center">
             <ThemeToggle />
